@@ -86,7 +86,7 @@ class CourseListView(generic.ListView):
 
 class CourseDetailView(generic.DetailView):
     model = Course
-    template_name = 'onlinecourse/course_detail_bootstrap.html'
+    template_name = 'onlinecourse/course_details_bootstrap.html'
 
 
 def enroll(request, course_id):
@@ -132,20 +132,21 @@ def show_exam_result(request, course_id, submission_id):
     course = get_object_or_404(Course, pk=course_id)
     submission = Submission.objects.get(id=submission_id)
     choices = submission.choices.all()
+    selected_ids = [choice.id for choice in choices]
 
     total_score = 0
-    questions = course.question_set.all()
-
-    for question in questions:
-        correct_choices = question.choice_set.filter(is_correct=True)
-        selected_choices = choices.filter(question=question)
-
+    possible_score = 0
+    for question in course.question_set.all():
+        possible_score += question.grade
         # Add the question's grade only if all correct answers are selected
-        if set(correct_choices) == set(selected_choices):
+        if question.is_get_score(selected_ids):
             total_score += question.grade
 
     context['course'] = course
     context['grade'] = total_score
+    context['total_score'] = total_score
+    context['possible_score'] = possible_score
+    context['selected_ids'] = selected_ids
     context['choices'] = choices
 
     return render(request, 'onlinecourse/exam_result_bootstrap.html', context)
